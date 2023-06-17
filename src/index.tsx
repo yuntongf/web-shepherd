@@ -1,19 +1,30 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
+import ReactDOM from "react-dom/client";
 import App from './App';
-import reportWebVitals from './reportWebVitals';
+import './index.css'
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
+let response = "hello world!";
+const root = ReactDOM.createRoot(document.getElementById('popup')!);
+
+// say hi to backend
+const msg = {
+    from: "popup",
+    to: "background"
+}
+chrome.runtime.sendMessage(msg);
+
+chrome.runtime.onMessage.addListener(
+    function(message, sender, sendResponse) {
+        if (message.status === "indexed") {
+            response = message.status;
+            root.render(
+                <App response={response}/>
+            );
+        }
+    }
 );
+
 root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+    <div>loading...</div>
 );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
