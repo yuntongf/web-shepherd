@@ -34,7 +34,7 @@ chrome.runtime.onMessage.addListener(
             } else {
                 indexWebPage(message.url).then(() => {
                     root.render(
-                        <App response={`indexed ${message.url}`}/>
+                        <App run={run}/>
                     );
                 });
             }
@@ -69,19 +69,22 @@ const indexWebPage = async (url: string) => {
     console.log(docs);
 }
 
-// const run = async () => {
-//     /* Ask it a question */
-//     const question = "What did the president say about Justice Breyer?";
-//     const res = await chain.call({ question });
-//     console.log(res);
-//     /* Ask it a follow up question */
-//     const followUpRes = await chain.call({
-//       question: "Was that nice?",
-//     });
-//     console.log(followUpRes);
-//   };
+const run = async (query: string) => {
+    /* Ask it a question */
+    const question = query;
+    const res = await chain.call({ question });
+    console.log(res);
+    return res.text;
+  };
 
 root.render(
     <div>loading...</div>
 );
+
+// indexWebPage("https://machine-learning-upenn.github.io/about/").then(() => {
+//     root.render(
+//         <App run={run}/>
+//     );
+// });
+
 

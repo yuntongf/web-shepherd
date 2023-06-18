@@ -58,16 +58,7 @@ const config = {
     ],
   },
   resolve: {
-    extensions: [".js", ".jsx", ".tsx", ".ts"],
-    fallback: {
-      https: require.resolve('https-browserify'),
-      process: require.resolve('process/'),
-      url: require.resolve("url/"),
-      http: require.resolve("stream-http"),
-      events: require.resolve("events/"),
-      buffer: require.resolve("buffer/"),
-      path: require.resolve("path-browserify")
-    },
+    extensions: [".js", ".jsx", ".tsx", ".ts"]
   },
   devServer: {
     contentBase: "./dist",
