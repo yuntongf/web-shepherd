@@ -1,18 +1,17 @@
 import React from 'react';
 import ReactDOM from "react-dom/client";
-import App from './App';
+import {App, ErrorPage, LoadPage} from './App';
 import './index.css'
 import { CheerioWebBaseLoader } from "langchain/document_loaders/web/cheerio";
+// import { PlaywrightWebBaseLoader } from "langchain/document_loaders/web/playwright";
 import { OpenAI } from "langchain/llms/openai";
 import { ConversationalRetrievalQAChain } from "langchain/chains";
-// import { Chroma } from "langchain/vectorstores/chroma";
-// import { FaissStore } from "langchain/vectorstores/faiss";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { BufferMemory } from "langchain/memory";
 import { OPENAI_API_KEY } from './config';
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
-let response = "hello world!";
 const root = ReactDOM.createRoot(document.getElementById('popup')!);
 
 // global variables
@@ -29,12 +28,12 @@ chrome.runtime.onMessage.addListener(
         if (message.from === "background") {
             if (message.url === "") {
                 root.render(
-                    <div>Cannot index current page</div>
+                    <ErrorPage/>
                 );
             } else {
                 indexWebPage(message.url).then(() => {
                     root.render(
-                        <App run={run}/>
+                        <App chain={chain}/>
                     );
                 });
             }
@@ -48,10 +47,18 @@ const indexWebPage = async (url: string) => {
     // load data
     const loader = new CheerioWebBaseLoader(url);
     const docs = await loader.load();
+
+    /* split text */
+    const splitter = new RecursiveCharacterTextSplitter({
+        chunkSize: 3000,
+        chunkOverlap: 1500,
+      });
+
+    const splittedDocs = await splitter.splitDocuments(docs);
     
     /* Create the vectorstore */
     const vectorStore = await MemoryVectorStore.fromDocuments(
-        docs,
+        splittedDocs,
         new OpenAIEmbeddings({openAIApiKey: OPENAI_API_KEY})
       );
     
@@ -69,22 +76,12 @@ const indexWebPage = async (url: string) => {
     console.log(docs);
 }
 
-const run = async (query: string) => {
-    /* Ask it a question */
-    const question = query;
-    const res = await chain.call({ question });
-    console.log(res);
-    return res.text;
-  };
 
-root.render(
-    <div>loading...</div>
-);
+root.render(<LoadPage/>);
 
 // indexWebPage("https://machine-learning-upenn.github.io/about/").then(() => {
 //     root.render(
-//         <App run={run}/>
+//         <App chain={chain}/>
 //     );
 // });
-
 
