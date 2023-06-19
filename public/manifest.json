@@ -1,6 +1,6 @@
 
 {
-  "name": "AskGPT",
+  "name": "Shepherd",
   "description": "Web page query tool based on langchain and ChatGPT",
   "version": "1.0",
   "manifest_version": 3,
@@ -22,7 +22,7 @@
     }
   ],
   "permissions": [
-    "activeTab", "tabs"
+    "activeTab", "tabs", "storage"
  ],
  "commands": {
   "_execute_action": {

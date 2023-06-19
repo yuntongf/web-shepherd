@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from "react-dom/client";
-import {App, ErrorPage, LoadPage} from './App';
+import {App, EntryPage, ErrorPage, LoadPage} from './App';
 import './index.css'
 import { CheerioWebBaseLoader } from "langchain/document_loaders/web/cheerio";
 // import { PlaywrightWebBaseLoader } from "langchain/document_loaders/web/playwright";
@@ -9,17 +9,18 @@ import { ConversationalRetrievalQAChain } from "langchain/chains";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { BufferMemory } from "langchain/memory";
-import { OPENAI_API_KEY } from './config';
+// import { OPENAI_API_KEY } from './config';
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-
-const root = ReactDOM.createRoot(document.getElementById('popup')!);
 
 // global variables
 let chain: any = null;
+let OPENAI_API_KEY = ""
 const msg = {
     from: "popup",
     to: "background"
 }
+
+const root = ReactDOM.createRoot(document.getElementById('popup')!);
 
 chrome.runtime.sendMessage(msg);
 
@@ -31,11 +32,17 @@ chrome.runtime.onMessage.addListener(
                     <ErrorPage/>
                 );
             } else {
-                indexWebPage(message.url).then(() => {
+                if (typeof message.API_KEY === 'undefined') {
+                    root.render(
+                        <EntryPage/>
+                    );
+                } else {
+                    OPENAI_API_KEY = message.API_KEY;
+                    indexWebPage(message.url).then(() => {
                     root.render(
                         <App chain={chain}/>
                     );
-                });
+                });}
             }
         }
     }
@@ -63,14 +70,21 @@ const indexWebPage = async (url: string) => {
       );
     
     /* Create the chain */
-    const model = new OpenAI({openAIApiKey: OPENAI_API_KEY, temperature: 0.0});
+    const fasterModel = new OpenAI({openAIApiKey: OPENAI_API_KEY, modelName: "gpt-3.5-turbo", temperature: 0.0});
     chain = ConversationalRetrievalQAChain.fromLLM(
-      model,
+        fasterModel,
       vectorStore.asRetriever(),
       {
+        returnSourceDocuments: true,
         memory: new BufferMemory({
-          memoryKey: "chat_history", // Must be set to "chat_history"
+          memoryKey: "chat_history",
+          inputKey: "question",
+          outputKey: "text",
+          returnMessages: true, 
         }),
+        questionGeneratorChainOptions: {
+          llm: fasterModel
+        }
       }
     );
     console.log(docs);

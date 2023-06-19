@@ -1,18 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.css'
 import './App.css';
 import { IconButton, InputAdornment, TextField } from "@mui/material";
 import SendIcon from '@mui/icons-material/Send';
-import { red } from '@mui/material/colors';
-import { Paper, Card } from "@mui/material";
+import { Paper, Card, Tooltip, CircularProgress } from "@mui/material";
 import { Avatar} from '@mui/material';
-import {Stack} from '@mui/material';
-import shepherd from '../public/shepherd.jpg';
 import { Dot } from 'react-animated-dots';
-import MenuIcon from '@mui/icons-material/Menu';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import HistoryIcon from '@mui/icons-material/History';
+import InputLabel from '@mui/material/InputLabel';
+import Input from '@mui/material/Input';
+import SettingsIcon from '@mui/icons-material/Settings';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CheckIcon from '@mui/icons-material/Check';
 
 /*********************************** Input Box *************************************/
 
@@ -152,6 +151,120 @@ function Dialogues({dialogues, showHistory, collapsed}: IDialogues) {
   )
 }
 
+/*********************************** Settings & Entry Page *************************************/
+function Statement() {
+  return (
+    <div className='mt-3 me-3' style={{fontSize: 14, color: 'GrayText'}}>
+      <p className='text-decoration-none'>We respect your privary. Hence the above information will only be held securely on Chrome's 
+        <a href="https://developer.chrome.com/docs/extensions/reference/storage/#storage-areas">
+          {` storage.session `}
+        </a>
+        until the browser is shut down.
+      </p>
+
+      <p className='text-decoration-none'>To create or delete a secret API key, please open the following link in a new tab:
+        <a href="https://platform.openai.com/account/api-keys"> https://platform.openai.com/account/api-keys</a>
+      </p> 
+    </div>
+  )
+}
+
+interface ISettings {
+  setShowSettings: (a: boolean) => void
+}
+function Settings({setShowSettings}: ISettings) {
+  const submitApiKey = () => {
+    chrome.storage.session.set({ API_KEY: apiKey }).then(() => {
+      const msg = {
+        from: "popup",
+        to: "background"
+      }
+      chrome.runtime.sendMessage(msg);
+    });
+  }
+
+  const [apiKey, setApiKey] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  return (
+    <div>
+        <ArrowBackIcon onClick={() => setShowSettings(false)}/>
+        <div className='mt-3 mb-2'>
+          <InputLabel htmlFor="api_key_input">Reset OpenAI API key</InputLabel>
+          <TextField
+            id="api_key_input"
+            onChange={(e) => setApiKey(e.target.value)}
+            variant='standard'
+            style={{width: '80%'}}
+            InputProps={{
+              endAdornment: 
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="ask question"
+                  onClick={submitApiKey}
+                  edge="end"
+                >
+                  <CheckIcon color={saved ? 'success' : 'action'} onClick={() => setSaved(true)}/>
+                </IconButton>
+              </InputAdornment>
+            }}
+          />
+        </div>
+        <Statement/>
+    </div>
+  )
+}
+
+const EntryPage: React.FC = () => {
+  const submitApiKey = () => {
+    chrome.storage.session.set({ API_KEY: apiKey }).then(() => {
+      const msg = {
+        from: "popup",
+        to: "background"
+      }
+      chrome.runtime.sendMessage(msg);
+    });
+  }
+
+  const [apiKey, setApiKey] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  return (
+    <div style={{backgroundColor: backgroundColor}}>
+      <header>
+      </header>
+      <body className="ps-3 pt-3" style={{backgroundColor: backgroundColor}}>
+      <div className='mt-3 mb-2'>
+        <InputLabel htmlFor="api_key_input">OpenAI API key</InputLabel>
+        <TextField
+          id="api_key_input"
+          onChange={(e) => setApiKey(e.target.value)}
+          variant='standard'
+          style={{width: '80%'}}
+          InputProps={{
+            endAdornment: 
+            <InputAdornment position="end">
+              <IconButton
+                aria-label="ask question"
+                onClick={submitApiKey}
+                edge="end"
+              >
+                {!saving ? 
+                  <CheckIcon color='action' onClick={() => setSaving(true)}/>
+                :
+                  <CircularProgress size={20}/>
+                }
+              </IconButton>
+            </InputAdornment>
+          }}
+        />
+        <Statement/>
+    </div>
+      </body>
+    </div>
+  )
+}
+
 
 /*********************************** App *************************************/
 const backgroundColor = '#fef9f3';
@@ -160,10 +273,6 @@ interface IAppProps {
   chain: any
 }
 const App: React.FC<IAppProps> = ({chain}: IAppProps) => {
-  const [query, setQuery] = useState("");
-  const [dialogues, setDialogues] = useState<{ question: string; response: string;}[] | never[]>([]);
-  const [showHistory, setShowHistory] = useState(true);
-  const [collapsed, setCollapsed] = useState(false);
   // const [response, setResponse] = useState("");
   // useEffect(() => {
   //   let newDialogue = {
@@ -177,7 +286,8 @@ const App: React.FC<IAppProps> = ({chain}: IAppProps) => {
   const run = async (query: string) => {
     /* Ask it a question */
     try {
-      const res = await chain.call({question: query});
+      const res = await chain.call(
+        {question: query});
       return res.text;
     } catch (e: any) {
       console.log(e);
@@ -206,20 +316,40 @@ const App: React.FC<IAppProps> = ({chain}: IAppProps) => {
     }
   }
 
+  const [query, setQuery] = useState("");
+  const [dialogues, setDialogues] = useState<{ question: string; response: string;}[] | never[]>([]);
+  const [showHistory, setShowHistory] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
+  const [showSettings, setShowSettings] = useState(chain == null);
+
   return (
     <div style={{backgroundColor: backgroundColor}}>
       <header>
             {/* {collapsed ? <ExpandMoreIcon color='action' onClick={() => setCollapsed(!collapsed)}/> 
             : <ExpandLessIcon color='action' onClick={() => setCollapsed(!collapsed)}/>} */}
       </header>
-      <body className="ps-3 pt-3" style={{backgroundColor: backgroundColor}}>
-        <Dialogues dialogues={dialogues} showHistory={showHistory} collapsed={collapsed}/>
-          <HistoryIcon color={showHistory ? 'primary' : 'action'} className='' onClick={() => setShowHistory(!showHistory)}/>
-          <InputBox query={query} setQuery={setQuery} submitQuery={submitQuery} />
+      <body className="ps-3 pt-3 pe-3" style={{backgroundColor: backgroundColor}}>
+          {showSettings ? 
+          <Settings setShowSettings={setShowSettings}/>
+          :
+          <div>
+            <Dialogues dialogues={dialogues} showHistory={showHistory} collapsed={collapsed}/>
+            <Tooltip title={showHistory ? 'show last question' : 'show history'}>
+              <HistoryIcon 
+                color={showHistory ? 'primary' : 'action'} 
+                onClick={() => setShowHistory(!showHistory)}/>
+            </Tooltip>
+            <SettingsIcon 
+              onClick={() => setShowSettings(!showSettings)}
+              color={showSettings ? 'primary' : 'action'}/>
+            <InputBox query={query} setQuery={setQuery} submitQuery={submitQuery} />
+          </div>}
       </body>
     </div>
   );
 }
+
+/*********************************** LoadPage *************************************/
 
 const LoadPage: React.FC = () => {
   return (
@@ -227,7 +357,7 @@ const LoadPage: React.FC = () => {
       <header>
       </header>
       <body className="ps-3 pt-3" style={{backgroundColor: backgroundColor}}>
-        <div style={{position: 'fixed', left: '20%', top: '40%'}}>
+        <div style={{position: 'fixed', left: '23%', top: '40%'}}>
             loading current page
             <span className="mt-0 mb-0" style={{fontSize: '160%'}}>
                 <Dot>🐕</Dot>
@@ -239,6 +369,8 @@ const LoadPage: React.FC = () => {
     </div>
   )
 }
+
+/*********************************** ErrorPage *************************************/
 
 const ErrorPage: React.FC = () => {
   return (
@@ -254,4 +386,6 @@ const ErrorPage: React.FC = () => {
   )
 }
 
-export {App, LoadPage, ErrorPage};
+
+
+export {App, LoadPage, ErrorPage, EntryPage};
